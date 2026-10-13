@@ -1,0 +1,9 @@
+{
+  "name": "run-first-fixture",
+  "private": true,
+  "scripts": {
+    "test:static": "node -e \"require('fs').appendFileSync('trace', 'static\\n')\"",
+    "lint": "node -e \"require('fs').appendFileSync('trace', 'lint\\n')\"",
+    "broken": "node -e \"require('fs').appendFileSync('trace', 'broken\\n'); process.exit(23)\""
+  }
+}

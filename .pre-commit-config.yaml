@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: act-tests
+        name: Suite de tests con act
+        entry: sh tests/act/pre-commit.sh
+        language: system
+        pass_filenames: false
+        always_run: true

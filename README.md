@@ -617,3 +617,7 @@ If you want to add or modify a module:
 4. Open a Pull Request for review.
 
 ---
+# Tests locales
+
+La suite de comportamiento usa `nektos/act`. Con Docker iniciado y act instalado,
+ejecutar `make test`. Ver [escenarios, requisitos y límites](tests/act/README.md).

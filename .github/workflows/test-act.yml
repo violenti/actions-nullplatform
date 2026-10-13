@@ -1,0 +1,30 @@
+name: Test local actions and reusable workflows
+on:
+  pull_request:
+    paths:
+      - '.github/actions/**'
+      - '.github/workflows/branch-validation.yml'
+      - '.github/workflows/test-act.yml'
+      - 'tests/**'
+      - 'Makefile'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install act v0.2.89
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/act-bin"
+          cd "$RUNNER_TEMP/act-bin"
+          curl -fsSLO https://github.com/nektos/act/releases/download/v0.2.89/act_Linux_x86_64.tar.gz
+          curl -fsSLO https://github.com/nektos/act/releases/download/v0.2.89/checksums.txt
+          grep ' act_Linux_x86_64.tar.gz$' checksums.txt | sha256sum -c -
+          tar -xzf act_Linux_x86_64.tar.gz act
+          echo "$RUNNER_TEMP/act-bin" >> "$GITHUB_PATH"
+      - name: Execute suite
+        run: make test

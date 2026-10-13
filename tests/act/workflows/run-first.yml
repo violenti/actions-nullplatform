@@ -1,0 +1,57 @@
+name: Test run-first
+on: push
+permissions:
+  contents: read
+jobs:
+  run-first:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {case: priority, candidates: 'test:static lint', expected: static, outcome: success}
+          - {case: fallback, candidates: 'missing lint', expected: lint, outcome: success}
+          - {case: reversed, candidates: 'lint test:static', expected: lint, outcome: success}
+          - {case: exact-match, candidates: 'test lint', expected: lint, outcome: success}
+          - {case: missing, candidates: 'missing absent', expected: '', outcome: failure}
+          - {case: empty, candidates: '', expected: '', outcome: failure}
+          - {case: failure, candidates: 'broken lint', expected: broken, outcome: failure}
+          - {case: manager, candidates: 'lint', expected: lint, outcome: success, manager: custom-npm}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prepare isolated package and package-manager spy
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/run-first fixture" "$RUNNER_TEMP/test-bin"
+          cp tests/act/fixtures/package.json "$RUNNER_TEMP/run-first fixture/package.json"
+          cp tests/act/fixtures/custom-npm "$RUNNER_TEMP/test-bin/custom-npm"
+          chmod +x "$RUNNER_TEMP/test-bin/custom-npm"
+          echo "$RUNNER_TEMP/test-bin" >> "$GITHUB_PATH"
+      - name: Run local action
+        id: subject
+        continue-on-error: true
+        uses: ./.github/actions/run-first
+        with:
+          candidates: ${{ matrix.candidates }}
+          package-manager: ${{ matrix.manager || 'npm' }}
+          working-directory: ${{ runner.temp }}/run-first fixture
+      - name: Assert outcome and executed script
+        if: always()
+        shell: bash
+        env:
+          EXPECTED_OUTCOME: ${{ matrix.outcome }}
+          ACTUAL_OUTCOME: ${{ steps.subject.outcome }}
+          EXPECTED_SCRIPT: ${{ matrix.expected }}
+          MANAGER: ${{ matrix.manager }}
+        run: |
+          test "$ACTUAL_OUTCOME" = "$EXPECTED_OUTCOME"
+          trace="$RUNNER_TEMP/run-first fixture/trace"
+          if [ -n "$EXPECTED_SCRIPT" ]; then
+            test "$(cat "$trace")" = "$EXPECTED_SCRIPT"
+            test "$(wc -l < "$trace" | tr -d ' ')" = 1
+          else
+            test ! -e "$trace"
+          fi
+          if [ "$MANAGER" = custom-npm ]; then
+            test "$(cat "$RUNNER_TEMP/run-first fixture/manager-trace")" = 'run lint'
+          fi
